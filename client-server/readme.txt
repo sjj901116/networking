@@ -1,9 +1,9 @@
 ECEN602 HW1 Programming Assignment
 ----------------------------------
 
-Team Number: 12
-Member 1 # LastName, FirstName (UIN: xxxxxxxxx)
-Member 2 # LastName, FirstName (UIN: xxxxxxxxx)
+Team Number: 30 
+Member 1 # raghavan (UIN: 722009006)
+Member 2 # 
 ---------------------------------------
 
 Description/Comments:
