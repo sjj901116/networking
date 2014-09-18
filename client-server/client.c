@@ -14,9 +14,19 @@
 
 #include <arpa/inet.h>
 
-#define PORT "3490" // the port client will be connecting to 
+#define PORT "23340" // the port client will be connecting to 
 
-#define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define MAXDATASIZE 512 // max number of bytes we can get at once 
+
+//Frame(message) contents of the SBCP protocol
+
+#pragma pack(1)
+struct SBCP{
+unsigned short vrsn:9,type:7;
+unsigned short frame_len,attrib_type,attrib_len;
+char payload[MAXDATASIZE];
+};
+#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -36,8 +46,9 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
 
-    if (argc != 2) {
-        fprintf(stderr,"usage: client hostname\n");
+//Checking specification of command line options
+    if (argc != 4) {
+        fprintf(stderr,"usage: client username server_ip server_port\n");
         exit(1);
     }
 
@@ -45,7 +56,8 @@ int main(int argc, char *argv[])
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+//Obtaining address of server to connect
+    if ((rv = getaddrinfo(argv[2], argv[3], &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -72,15 +84,50 @@ int main(int argc, char *argv[])
         return 2;
     }
 
+//Obtaining the IPv4/IPv6 addresses in text format
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
             s, sizeof s);
     printf("client: connecting to %s\n", s);
 
     freeaddrinfo(servinfo); // all done with this structure
 
+// Populating the SBCP message frame
+// Initailizing with username
+    struct SBCP msg; 
+    msg.vrsn = 3;
+    msg.type = 2;
+    msg.attrib_type = 2;
+    memset(msg.payload, '\0', sizeof(msg.payload));
+    strcpy(msg.payload,argv[1]); //username initially to join
+    msg.attrib_len = strlen(msg.payload)+4;
+    msg.frame_len = msg.attrib_len + 4; 
+
+    //printf("\nSTructure format\n");
+    //printf("VRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
+
+// master file descriptor list 
+     fd_set master;
+// temp file descriptor list for select() 
+     fd_set read_fds;
+
+    if (send(sockfd, (char *)&msg, msg.frame_len, 0) == -1){
+    	printf("Error sending\n");
+	perror("send");
+    }
+
+    printf("client: sent, now receiving \n");
+/*
+    msg.type = 2;
+    msg.attrib_type = 2;
+    memset(msg.payload, '\0', sizeof(msg.payload));
+    strcpy(msg.payload,argv[1]); //username initially to join
+    msg.attrib_len = strlen(msg.payload)+4;
+    msg.frame_len = msg.attrib_len + 4;
+*/
+
     if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-        perror("recv");
-        exit(1);
+	    perror("recv");
+            exit(1);
     }
 
     buf[numbytes] = '\0';

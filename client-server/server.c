@@ -15,7 +15,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define PORT "3490"  // the port users will be connecting to
+#define PORT "23340"  // the port users will be connecting to
 
 #define BACKLOG 10     // how many pending connections queue will hold
 
@@ -113,14 +113,26 @@ int main(void)
             s, sizeof s);
         printf("server: got connection from %s\n", s);
 
-        if (!fork()) { // this is the child process
-            close(sockfd); // child doesn't need the listener
+//        if (!fork()) { // this is the child process
+//            close(sockfd); // child doesn't need the listener
             if (send(new_fd, "Hello, world!", 13, 0) == -1)
                 perror("send");
+int numbytes;
+char buf[15];
+	if ((numbytes = recv(sockfd, buf, 15, 0)) == -1) {
+        	perror("recv");
+	        exit(1);
+    	}
+	
+	buf[numbytes] = '\0';
+
+	printf("client: received '%s'\n",buf);
+
+
             close(new_fd);
-            exit(0);
-        }
-        close(new_fd);  // parent doesn't need this
+//            exit(0);
+//        }
+//        close(new_fd);  // parent doesn't need this
     }
 
     return 0;
