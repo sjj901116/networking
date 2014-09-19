@@ -20,13 +20,13 @@
 
 //Frame(message) contents of the SBCP protocol
 
-#pragma pack(1)
+//#pragma pack(4)
 struct SBCP{
 unsigned short vrsn:9,type:7;
 unsigned short frame_len,attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
-#pragma pack(0)
+//#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -102,37 +102,68 @@ int main(int argc, char *argv[])
     msg.attrib_len = strlen(msg.payload)+4;
     msg.frame_len = msg.attrib_len + 4; 
 
+    msg.vrsn = htons (msg.vrsn);
+    msg.type = htons(msg.type);
+    msg.attrib_type = htons (msg.attrib_type);
+    msg.attrib_len = htons (msg.attrib_len);
+    msg.frame_len = htons (msg.frame_len);
+    
     //printf("\nSTructure format\n");
-    //printf("VRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
+    //printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 
-// master file descriptor list 
-     fd_set master;
-// temp file descriptor list for select() 
-     fd_set read_fds;
-
-    if (send(sockfd, (char *)&msg, msg.frame_len, 0) == -1){
-    	printf("Error sending\n");
-	perror("send");
+    if (send(sockfd, (char *)&msg, sizeof(msg), 0) == -1){
+        printf("Error sending\n");
+        perror("send");
     }
 
-    printf("client: sent, now receiving \n");
-/*
-    msg.type = 2;
-    msg.attrib_type = 2;
-    memset(msg.payload, '\0', sizeof(msg.payload));
-    strcpy(msg.payload,argv[1]); //username initially to join
-    msg.attrib_len = strlen(msg.payload)+4;
-    msg.frame_len = msg.attrib_len + 4;
-*/
+    printf("client: JOIN, now SEND/RECV \n"); 
+// FD_SET tmp variable for select() 
+    fd_set tmp;
 
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-	    perror("recv");
-            exit(1);
+    while(1)
+    {
+
+    FD_ZERO(&tmp);
+    FD_SET(0,&tmp);
+    FD_SET(sockfd,&tmp);
+    if(select(sockfd+1,&tmp,NULL,NULL,NULL) == -1) {
+	printf("Error with select \n");
+	perror("select");
+	exit(1);
+    }
+    
+    printf("Enter the message \n");
+	
+    if(FD_ISSET(0,&tmp))
+    {
+	scanf("%s",buf);
+	msg.type = 4;
+	msg.attrib_type = 4;
+	memset(msg.payload, '\0', sizeof(msg.payload));
+	strcpy(msg.payload,buf); //username initially to join
+	msg.attrib_len = strlen(msg.payload)+4;
+	msg.frame_len = msg.attrib_len + 4;
+	
+	if (send(sockfd, (char *)&msg, sizeof msg, 0) == -1){
+        printf("Error sending\n");
+        perror("send");
+    	}
+
     }
 
-    buf[numbytes] = '\0';
+    if(FD_ISSET(sockfd,&tmp))
+    {
+	printf("Server: \n");
+	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+            perror("recv");
+     	       exit(1);
+	}
+	buf[numbytes] = '\0';
+	struct SBCP *recv_msg=(struct SBCP*) &buf;
+	printf("client: received %d %d\n",ntohs(recv_msg->type),numbytes);
+    }
 
-    printf("client: received '%s'\n",buf);
+    }
 
     close(sockfd);
 
