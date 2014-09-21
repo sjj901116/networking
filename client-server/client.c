@@ -109,9 +109,9 @@ int main(int argc, char *argv[])
     msg.frame_len = htons (msg.frame_len);
     
     //printf("\nSTructure format\n");
-    //printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
+    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 
-    if (send(sockfd, (char *)&msg, sizeof(msg), 0) == -1){
+    if (send(sockfd, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
         printf("Error sending\n");
         perror("send");
     }
@@ -119,32 +119,38 @@ int main(int argc, char *argv[])
     printf("client: JOIN, now SEND/RECV \n"); 
 // FD_SET tmp variable for select() 
     fd_set tmp;
-
+/*
+    FD_ZERO(&tmp);
+    FD_SET(0,&tmp);
+    FD_SET(sockfd,&tmp);
+*/
     while(1)
     {
 
     FD_ZERO(&tmp);
     FD_SET(0,&tmp);
     FD_SET(sockfd,&tmp);
+
+
     if(select(sockfd+1,&tmp,NULL,NULL,NULL) == -1) {
 	printf("Error with select \n");
 	perror("select");
 	exit(1);
     }
     
-    printf("Enter the message \n");
+    printf("%s: ",argv[1]);
 	
     if(FD_ISSET(0,&tmp))
     {
-	scanf("%s",buf);
+	fgets(buf,MAXDATASIZE,stdin);
 	msg.type = 4;
 	msg.attrib_type = 4;
 	memset(msg.payload, '\0', sizeof(msg.payload));
 	strcpy(msg.payload,buf); //username initially to join
-	msg.attrib_len = strlen(msg.payload)+4;
+	msg.attrib_len = strlen(msg.payload)-1+4;
 	msg.frame_len = msg.attrib_len + 4;
 	
-	if (send(sockfd, (char *)&msg, sizeof msg, 0) == -1){
+	if (send(sockfd, (char *)&msg, msg.frame_len, 0) == -1){
         printf("Error sending\n");
         perror("send");
     	}
