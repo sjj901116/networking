@@ -50,7 +50,11 @@ int main(int argc, char *argv[])
     char s[INET6_ADDRSTRLEN];
     int rv,i,j;
     int numbytes;
-    char buf[MAXDATASIZE];
+    char present,buf[MAXDATASIZE];
+    char *usrns[atoi(argv[3])];
+ 
+    for(i=0; i< atoi(argv[3]); i++)
+	usrns[i] = NULL;
 
 //Checking specification of command line options
     if (argc != 4) {
@@ -146,7 +150,7 @@ int main(int argc, char *argv[])
 				}
 
 		        inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-		        printf("server: got connection from %s\n", s);	
+		        printf("server: %d got connection from %s\n", sockfd,s);	
 			}
            		}
 			
@@ -154,6 +158,7 @@ int main(int argc, char *argv[])
                     	// handle data from a client
                     	if ((numbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
+                                printf("server: %s LEFT the chat room \n",usrns[i-sockfd-1]);
                         	if (numbytes == 0) {
 	                        // connection closed
                         	printf("server: socket %d hung up! Nothing received\n", i);
@@ -162,6 +167,8 @@ int main(int argc, char *argv[])
 				printf("server: some error receiving \n");
                             	perror("recv");
                         	}
+				free(usrns[i-sockfd-1]);
+				usrns[i-sockfd-1]=NULL;
                         	close(i); // bye!
                         	FD_CLR(i, &master); // remove from master set
                     	} 
@@ -169,7 +176,33 @@ int main(int argc, char *argv[])
                         // we got some data from a client
 			buf[numbytes] = '\0';
 			struct SBCP *msg_buff = (struct SBCP *)&buf;
-			printf("server: received '%s' %d from client\n",msg_buff->payload,numbytes);
+			if(ntohs(msg_buff->attrib_type) == 2)
+			{
+				if(usrns[atoi(argv[3])-1]!=NULL) {
+                                printf("server: MAX CLIENTS of %d reached. Sorry Try again later!\n",atoi(argv[3]));
+                                close(i); // bye!
+                                FD_CLR(i, &master); // remove from master set
+	                   	}
+                        	else {
+				present = 0;
+                                for(j=0 ; j < atoi(argv[3]) ;j++) {
+                                        if(usrns[j]!=NULL && strcmp(msg_buff->payload,usrns[j])==0) {
+                                                printf("server: USERNAME(%s) already present!. Try again\n",usrns[j]);
+                                                close(i); // bye!
+		                                FD_CLR(i, &master); // remove from master set
+						present=1;
+						break;
+                		        }
+				}
+				if(!present) {				
+				usrns[i-sockfd-1]=(char*) malloc(strlen(msg_buff->payload));
+				strcpy(usrns[i-sockfd-1],msg_buff->payload);
+				printf("server: %s JOINED the chat room\n",usrns[i-sockfd-1]);	
+				}
+				}
+			}	
+			else
+				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->payload);
                         for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
                         	if (FD_ISSET(j, &master)) {

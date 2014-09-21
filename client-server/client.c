@@ -119,18 +119,13 @@ int main(int argc, char *argv[])
     printf("client: JOIN, now SEND/RECV \n"); 
 // FD_SET tmp variable for select() 
     fd_set tmp;
-/*
-    FD_ZERO(&tmp);
-    FD_SET(0,&tmp);
-    FD_SET(sockfd,&tmp);
-*/
+
     while(1)
     {
 
     FD_ZERO(&tmp);
     FD_SET(0,&tmp);
     FD_SET(sockfd,&tmp);
-
 
     if(select(sockfd+1,&tmp,NULL,NULL,NULL) == -1) {
 	printf("Error with select \n");
