@@ -15,20 +15,18 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define PORT "23340"  // the port users will be connecting to
-
 #define BACKLOG 10     // how many pending connections queue will hold
 #define MAXDATASIZE 512
 
 //Frame(message) contents of the SBCP protocol
 
-//#pragma pack(4)
+#pragma pack(1)
 struct SBCP{
-unsigned short vrsn:9,type:7;
+unsigned short vrsn_type;
 unsigned short frame_len,attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
-//#pragma pack(0)
+#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -56,7 +54,7 @@ int main(int argc, char *argv[])
     for(i=0; i< atoi(argv[3]); i++)
 	usrns[i] = NULL;
 
-//Checking specification of command line options
+    //Checking specification of command line options
     if (argc != 4) {
         fprintf(stderr,"usage: server server_ip server_port max_clients\n");
         exit(1);
@@ -110,7 +108,7 @@ int main(int argc, char *argv[])
     // FD_SET variables for select() 
     fd_set master,read_fds;
 
-// clear the master and temp sets
+    // clear the master and temp sets
     FD_ZERO(&master);    
     FD_ZERO(&read_fds);
 
@@ -202,13 +200,15 @@ int main(int argc, char *argv[])
 				}
 			}	
 			else
-				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->payload);
+				printf("%s: %d %s \n",usrns[i-sockfd-1],ntohs(msg_buff->vrsn_type),msg_buff->payload);
                         for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
                         	if (FD_ISSET(j, &master)) {
                                 // except the listener and ourselves
                                 if (j != sockfd && j != i) {
-                                    if (send(j, buf, numbytes, 0) == -1) {
+				    msg_buff->vrsn_type = (3<<7)|(3); 
+				    msg_buff->vrsn_type = htons(msg_buff->vrsn_type);
+                                    if (send(j, (char*)msg_buff, ntohs(msg_buff->frame_len), 0) == -1) {
                                         perror("send");
                                     } 
     				}
