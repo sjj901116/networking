@@ -20,13 +20,13 @@
 
 //Frame(message) contents of the SBCP protocol
 
-#pragma pack(1)
+//#pragma pack(1)
 struct SBCP{
 unsigned short vrsn_type;
 unsigned short frame_len,attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
-#pragma pack(0)
+//#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -106,9 +106,9 @@ int main(int argc, char *argv[])
     msg.attrib_len = htons (msg.attrib_len);
     msg.frame_len = htons (msg.frame_len);
     
-    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",ntohs(msg.vrsn_type),&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
+    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 
-    if (send(sockfd, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
+    if (send(sockfd, &msg, ntohs(msg.frame_len), 0) == -1){
         printf("Error sending\n");
         perror("send");
     }
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     {
 	printf("%s: ",argv[1]);
 	fgets(buf,MAXDATASIZE,stdin);
-	msg.vrsn_type = (msg.vrsn_type & 0xFF80) | 4;
+	msg.vrsn_type = (3<<7) | 4;
 	msg.attrib_type = 4;
 	memset(msg.payload, '\0', sizeof(msg.payload));
 	strcpy(msg.payload,buf); 
@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
         msg.attrib_len = htons (msg.attrib_len);
         msg.frame_len = htons (msg.frame_len);
 
-	if (send(sockfd, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
+	if (send(sockfd, &msg, ntohs(msg.frame_len), 0) == -1){
         printf("Error sending\n");
         perror("send");
     	}
@@ -155,16 +155,19 @@ int main(int argc, char *argv[])
 
     if(FD_ISSET(sockfd,&tmp))
     {
-	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+	if ((numbytes = recv(sockfd, buf, MAXDATASIZE, 0)) == -1) {
             perror("recv");
      	       exit(1);
 	}
-	buf[numbytes] = '\0';
+	//buf[numbytes] = '\0';
 	struct SBCP *recv_msg=(struct SBCP*) &buf;
 	//FWD msg
-	//if(((ntohs(recv_msg->vrsn_type))&0x7F) == 3) { 
-		printf("\nChat Server: %s",buf);
-	//}
+//	if(((ntohs(recv_msg->vrsn_type))&0x7F) == 3) { 
+//		if((ntohs(recv_msg->attrib_type)) == 2)
+//			printf("%s: ",recv_msg->payload);
+//		else
+			printf("%s\n",recv_msg->payload);
+//	}
     }
 
     }

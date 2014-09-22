@@ -210,6 +210,7 @@ int main(int argc, char *argv[])
 				    struct SBCP msg;
 				    msg.vrsn_type = (3<<7)|(3);
 				    msg.attrib_type = 2;
+				    memset(msg.payload, '\0', sizeof(msg.payload));
 				    strcpy(msg.payload,usrns[j-sockfd-1]); //username initially to join
 				    msg.attrib_len = strlen(msg.payload)+4;
 				    msg.frame_len = msg.attrib_len + 4;
@@ -221,14 +222,15 @@ int main(int argc, char *argv[])
 
 				    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 				    //Sending Username	
-				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
+				    if (send(j, &msg, ntohs(msg.frame_len), 0) == -1){
 					printf("Error sending\n");
 					perror("send");
 				    }
 
 				    msg.attrib_type = 4;
+     				    memset(msg.payload, '\0', sizeof(msg.payload));
 				    strcpy(msg.payload,msg_buff->payload); 
-				    msg.attrib_len = strlen(msg.payload)+4;
+				    msg.attrib_len = strlen(msg.payload)-1+4;
 				    msg.frame_len = msg.attrib_len + 4;
 	
                     		    msg.vrsn_type = htons(msg.vrsn_type);
@@ -237,7 +239,7 @@ int main(int argc, char *argv[])
 				    msg.frame_len = htons (msg.frame_len);
 
 				    //Sending Chat text
-				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
+				    if (send(j, &msg, ntohs(msg.frame_len), 0) == -1){
 				    printf("Error sending\n");
 				    perror("send");
 			    	    }
