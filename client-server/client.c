@@ -22,8 +22,7 @@
 
 //#pragma pack(1)
 struct SBCP{
-unsigned short vrsn_type;
-unsigned short frame_len,attrib_type,attrib_len;
+uint16_t vrsn_type, frame_len,attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
 //#pragma pack(0)
