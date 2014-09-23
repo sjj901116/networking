@@ -201,11 +201,12 @@ int main(int argc, char *argv[])
 			}	
 			else
 				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->payload);
+
                         for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
                         	if (FD_ISSET(j, &master)) {
                                 // except the listener and ourselves
-                                if (j != sockfd && j != i) {
+                                if ((j > sockfd) && (j != i)) {
 				    struct SBCP msg;
 				    msg.vrsn_type = (3<<7)|(3);
 				    msg.attrib_type = 2;
@@ -226,11 +227,10 @@ int main(int argc, char *argv[])
 				    }
 
 				    msg.attrib_type = 4;
-				    strcpy(msg.payload,msg_buff->payload); 
+				    strcpy(msg.payload,msg_buff->payload);	
 				    msg.attrib_len = strlen(msg.payload)+4;
 				    msg.frame_len = msg.attrib_len + 4;
 	
-                    		    msg.vrsn_type = htons(msg.vrsn_type);
 				    msg.attrib_type = htons (msg.attrib_type);
 				    msg.attrib_len = htons (msg.attrib_len);
 				    msg.frame_len = htons (msg.frame_len);

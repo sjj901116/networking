@@ -20,12 +20,15 @@
 
 //Frame(message) contents of the SBCP protocol
 
-//#pragma pack(1)
 struct SBCP{
-uint16_t vrsn_type, frame_len,attrib_type,attrib_len;
+uint16_t vrsn_type, frame_len;
+struct Attr *at;
+};
+
+struct Attr{
+uint16_t attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
-//#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -93,19 +96,20 @@ int main(int argc, char *argv[])
     // Populating the SBCP message frame
     // Initailizing with username
     struct SBCP msg; 
+    msg.at = (struct Attr *)malloc(sizeof(struct Attr));
     msg.vrsn_type = (3<<7)|(2);
-    msg.attrib_type = 2;
-    memset(msg.payload, '\0', sizeof(msg.payload));
-    strcpy(msg.payload,argv[1]); //username initially to join
-    msg.attrib_len = strlen(msg.payload)+4;
-    msg.frame_len = msg.attrib_len + 4; 
+    msg.at->attrib_type = 2;
+    memset(msg.at->payload, '\0', sizeof(msg.at->payload));
+    strcpy(msg.at->payload,argv[1]); //username initially to join
+    msg.at->attrib_len = strlen(msg.at->payload)+4;
+    msg.frame_len = msg.at->attrib_len + 4; 
 
     msg.vrsn_type = htons (msg.vrsn_type);
-    msg.attrib_type = htons (msg.attrib_type);
-    msg.attrib_len = htons (msg.attrib_len);
+    msg.at->attrib_type = htons (msg.at->attrib_type);
+    msg.at->attrib_len = htons (msg.at->attrib_len);
     msg.frame_len = htons (msg.frame_len);
     
-    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
+//    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 
     if (send(sockfd, &msg, ntohs(msg.frame_len), 0) == -1){
         printf("Error sending\n");
@@ -134,15 +138,15 @@ int main(int argc, char *argv[])
 	printf("%s: ",argv[1]);
 	fgets(buf,MAXDATASIZE,stdin);
 	msg.vrsn_type = (3<<7) | 4;
-	msg.attrib_type = 4;
-	memset(msg.payload, '\0', sizeof(msg.payload));
-	strcpy(msg.payload,buf); 
-	msg.attrib_len = strlen(msg.payload)-1+4;
-	msg.frame_len = msg.attrib_len + 4;
+	msg.at->attrib_type = 4;
+	memset(msg.at->payload, '\0', sizeof(msg.at->payload));
+	strcpy(msg.at->payload,buf); 
+	msg.at->attrib_len = strlen(msg.at->payload)-1+4;
+	msg.frame_len = msg.at->attrib_len + 4;
 	
-	msg.vrsn_type = htons(msg.vrsn_type);
-        msg.attrib_type = htons (msg.attrib_type);
-        msg.attrib_len = htons (msg.attrib_len);
+	msg.vrsn_type = htons (msg.vrsn_type);
+        msg.at->attrib_type = htons (msg.at->attrib_type);
+        msg.at->attrib_len = htons (msg.at->attrib_len);
         msg.frame_len = htons (msg.frame_len);
 
 	if (send(sockfd, &msg, ntohs(msg.frame_len), 0) == -1){
@@ -158,15 +162,16 @@ int main(int argc, char *argv[])
             perror("recv");
      	       exit(1);
 	}
-	//buf[numbytes] = '\0';
+	buf[numbytes] = '\0';
 	struct SBCP *recv_msg=(struct SBCP*) &buf;
 	//FWD msg
-//	if(((ntohs(recv_msg->vrsn_type))&0x7F) == 3) { 
-//		if((ntohs(recv_msg->attrib_type)) == 2)
-//			printf("%s: ",recv_msg->payload);
-//		else
-			printf("%s\n",recv_msg->payload);
-//	}
+	if(((ntohs(recv_msg->vrsn_type))&0x7F) == 3) { 
+		if((ntohs(recv_msg->at->attrib_type)) == 2)
+			printf("%s: ",recv_msg->at->payload);
+		else
+			printf("%s\n",recv_msg->at->payload);
+			//printf("VRSN:%d\tFRAMELEN:%d\tATTRIBTYPE:%d\tATTRLEN:%d\tPAYLOAD:%s\n",recv_msg->vrsn_type, recv_msg->frame_len, recv_msg->attrib_type, recv_msg->attrib_len, recv_msg->payload);
+	}
     }
 
     }
