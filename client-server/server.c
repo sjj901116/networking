@@ -20,10 +20,12 @@
 
 //Frame(message) contents of the SBCP protocol
 
+//#pragma pack(1)
 struct SBCP{
-uint16_t vrsn_type, frame_len;
+uint16_t vrsn_type,frame_len,attrib_type,attrib_len;
 char payload[MAXDATASIZE];
 };
+//#pragma pack(0)
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -169,13 +171,10 @@ int main(int argc, char *argv[])
                     	} 
 			else {
                         // we got some data from a client
-			printf("bbbb\n");
 			buf[numbytes] = '\0';
 			struct SBCP *msg_buff= (struct SBCP *)&buf;
-			//printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg_buff->vrsn_type,msg_buff, msg_buff->at->attrib_type, &msg_buff->at->attrib_type, msg_buff->frame_len, &msg_buff->frame_len, msg_buff->at->attrib_len, &msg_buff->at->attrib_len, msg_buff->at->payload, &msg_buff->at->payload);
-			uint16_t *attrib_type,*attrib_len;
-			attrib_type = (uint16_t *) &msg_buff->payload;
-			if(ntohs(*attrib_type) == 2)
+
+			if(ntohs(msg_buff->attrib_type) == 2)
 			{
 				if(usrns[atoi(argv[3])-1]!=NULL) {
                                 printf("server: MAX CLIENTS of %d reached. Sorry Try again later!\n",atoi(argv[3]));
@@ -185,7 +184,7 @@ int main(int argc, char *argv[])
                         	else {
 				present = 0;
                                 for(j=0 ; j < atoi(argv[3]) ;j++) {
-                                        if(usrns[j]!=NULL && strcmp(&msg_buff->payload[4],usrns[j])==0) {
+                                        if(usrns[j]!=NULL && strcmp(msg_buff->payload,usrns[j])==0) {
                                                 printf("server: USERNAME(%s) already present!. Try again\n",usrns[j]);
                                                 close(i); // bye!
 		                                FD_CLR(i, &master); // remove from master set
@@ -194,14 +193,14 @@ int main(int argc, char *argv[])
                 		        }
 				}
 				if(!present) {				
-				usrns[i-sockfd-1]=(char*) malloc(strlen(&msg_buff->payload[4]));
-				strcpy(usrns[i-sockfd-1],&msg_buff->payload[4]);
+				usrns[i-sockfd-1]=(char*) malloc(strlen(msg_buff->payload));
+				strcpy(usrns[i-sockfd-1],msg_buff->payload);
 				printf("server: %s JOINED the chat room\n",usrns[i-sockfd-1]);	
 				}
 				}
 			}	
 			else
-				printf("%s: %s \n",usrns[i-sockfd-1],&msg_buff->payload[4]);
+				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->payload);
 
                         for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
@@ -209,20 +208,18 @@ int main(int argc, char *argv[])
                                 // except the listener and ourselves
                                 if ((j > sockfd) && (j != i)) {
 				    struct SBCP msg;
-/*				    msg.at = (struct Attr *)malloc(sizeof(struct Attr));
 				    msg.vrsn_type = (3<<7)|(3);
-				    msg.at->attrib_type = 2;
-				    strcpy(msg.at->payload,usrns[j-sockfd-1]); //username initially to join
-				    msg.at->attrib_len = strlen(msg.at->payload)+4;
-				    msg.frame_len = msg.at->attrib_len + 4;
+				    msg.attrib_type = 2;
+				    strcpy(msg.payload,usrns[j-sockfd-1]); //username initially to join
+				    msg.attrib_len = strlen(msg.payload)+4;
+				    msg.frame_len = msg.attrib_len + 4;
 
 				    msg.vrsn_type = htons (msg.vrsn_type);
-				    msg.at->attrib_type = htons (msg.at->attrib_type);
-				    msg.at->attrib_len = htons (msg.at->attrib_len);
+				    msg.attrib_type = htons (msg.attrib_type);
+				    msg.attrib_len = htons (msg.attrib_len);
 				    msg.frame_len = htons (msg.frame_len);
 
-				    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.at->attrib_type, &msg.at->attrib_type, msg.frame_len, &msg.frame_len, msg.at->attrib_len, &msg.at->attrib_len, msg.at->payload, &msg.at->payload);
-
+				    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 				    //Sending Username	
 				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
 					printf("Error sending\n");
@@ -245,7 +242,7 @@ int main(int argc, char *argv[])
 			    	    }
 
 				    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
-*/                                    
+                                    
     				}
 				}
 			}
