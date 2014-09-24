@@ -3,7 +3,7 @@ ECEN602 HW1 Programming Assignment
 
 Team Number: 30 
 Member 1 # raghavan (UIN: 722009006)
-Member 2 # 
+Member 2 # Jiaju Shi (UIN:823001803)
 ---------------------------------------
 
 Description/Comments:
