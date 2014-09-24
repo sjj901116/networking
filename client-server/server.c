@@ -18,12 +18,25 @@
 #define BACKLOG 10     // how many pending connections queue will hold
 #define MAXDATASIZE 512
 
+#define MAXATTRIBUTES 2
 //Frame(message) contents of the SBCP protocol
 
+<<<<<<< HEAD
 struct SBCP{
 uint16_t vrsn_type, frame_len;
 char payload[MAXDATASIZE];
 };
+=======
+struct Attr{
+uint16_t attrib_type,attrib_len;
+char payload[MAXDATASIZE];
+};
+
+struct SBCP{
+uint16_t vrsn_type, frame_len;
+struct Attr at[MAXATTRIBUTES];
+};
+>>>>>>> 6ea6440... Fine tuning needed
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -43,7 +56,7 @@ int main(int argc, char *argv[])
     socklen_t sin_size;
     int yes=1;
     char s[INET6_ADDRSTRLEN];
-    int rv,i,j;
+    int rv,i,j,k;
     int numbytes;
     char present,buf[MAXDATASIZE];
     char *usrns[atoi(argv[3])];
@@ -172,10 +185,14 @@ int main(int argc, char *argv[])
 			printf("bbbb\n");
 			buf[numbytes] = '\0';
 			struct SBCP *msg_buff= (struct SBCP *)&buf;
+<<<<<<< HEAD
 			//printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg_buff->vrsn_type,msg_buff, msg_buff->at->attrib_type, &msg_buff->at->attrib_type, msg_buff->frame_len, &msg_buff->frame_len, msg_buff->at->attrib_len, &msg_buff->at->attrib_len, msg_buff->at->payload, &msg_buff->at->payload);
 			uint16_t *attrib_type,*attrib_len;
 			attrib_type = (uint16_t *) &msg_buff->payload;
 			if(ntohs(*attrib_type) == 2)
+=======
+			if(ntohs(msg_buff->at[0].attrib_type) == 2)
+>>>>>>> 6ea6440... Fine tuning needed
 			{
 				if(usrns[atoi(argv[3])-1]!=NULL) {
                                 printf("server: MAX CLIENTS of %d reached. Sorry Try again later!\n",atoi(argv[3]));
@@ -185,7 +202,11 @@ int main(int argc, char *argv[])
                         	else {
 				present = 0;
                                 for(j=0 ; j < atoi(argv[3]) ;j++) {
+<<<<<<< HEAD
                                         if(usrns[j]!=NULL && strcmp(&msg_buff->payload[4],usrns[j])==0) {
+=======
+                                        if(usrns[j]!=NULL && strcmp(msg_buff->at[0].payload,usrns[j])==0) {
+>>>>>>> 6ea6440... Fine tuning needed
                                                 printf("server: USERNAME(%s) already present!. Try again\n",usrns[j]);
                                                 close(i); // bye!
 		                                FD_CLR(i, &master); // remove from master set
@@ -194,14 +215,24 @@ int main(int argc, char *argv[])
                 		        }
 				}
 				if(!present) {				
+<<<<<<< HEAD
 				usrns[i-sockfd-1]=(char*) malloc(strlen(&msg_buff->payload[4]));
 				strcpy(usrns[i-sockfd-1],&msg_buff->payload[4]);
+=======
+				usrns[i-sockfd-1]=(char*) malloc(strlen(msg_buff->at[0].payload));
+				strcpy(usrns[i-sockfd-1],msg_buff->at[0].payload);
+>>>>>>> 6ea6440... Fine tuning needed
 				printf("server: %s JOINED the chat room\n",usrns[i-sockfd-1]);	
 				}
 				}
 			}	
+<<<<<<< HEAD
 			else
 				printf("%s: %s \n",usrns[i-sockfd-1],&msg_buff->payload[4]);
+=======
+			else {
+				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->at[0].payload);
+>>>>>>> 6ea6440... Fine tuning needed
 
                         for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
@@ -211,6 +242,7 @@ int main(int argc, char *argv[])
 				    struct SBCP msg;
 /*				    msg.at = (struct Attr *)malloc(sizeof(struct Attr));
 				    msg.vrsn_type = (3<<7)|(3);
+<<<<<<< HEAD
 				    msg.at->attrib_type = 2;
 				    strcpy(msg.at->payload,usrns[j-sockfd-1]); //username initially to join
 				    msg.at->attrib_len = strlen(msg.at->payload)+4;
@@ -227,27 +259,43 @@ int main(int argc, char *argv[])
 				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
 					printf("Error sending\n");
 					perror("send");
-				    }
+=======
+				    msg.at[0].attrib_type = 2;
+				    strcpy(msg.at[0].payload,usrns[i-sockfd-1]); //username initially to join
+				    msg.at[0].attrib_len = strlen(msg.at[0].payload)+4;
+				    msg.frame_len = msg.at[0].attrib_len + 4;
 
-				    msg.attrib_type = 4;
-				    strcpy(msg.payload,msg_buff->payload);	
-				    msg.attrib_len = strlen(msg.payload)+4;
-				    msg.frame_len = msg.attrib_len + 4;
-	
-				    msg.attrib_type = htons (msg.attrib_type);
-				    msg.attrib_len = htons (msg.attrib_len);
+				    msg.at[1].attrib_type = 4;
+				    strcpy(msg.at[1].payload,msg_buff->at[0].payload);	
+				    msg.at[1].attrib_len = strlen(msg.at[1].payload)+4;
+				    msg.frame_len += msg.at[1].attrib_len ;
+
+				    msg.vrsn_type = htons (msg.vrsn_type);
 				    msg.frame_len = htons (msg.frame_len);
 
-				    //Sending Chat text
+				    for(k=0;k<MAXATTRIBUTES;k++) {
+                                    msg.at[k].attrib_type = htons (msg.at[k].attrib_type);
+                                    msg.at[k].attrib_len = htons (msg.at[k].attrib_len);
+>>>>>>> 6ea6440... Fine tuning needed
+				    }
+				    
+				    printf("%x %x %x %s \n",&msg.at[0].payload,&msg.at[1].attrib_type,&msg.at[1].attrib_len,msg.at[1].payload);
+				    //Sending Chat text and username (FWD)
 				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
 				    printf("Error sending\n");
 				    perror("send");
 			    	    }
+<<<<<<< HEAD
 
 				    printf("\nVRSN_type = %d %x\t Attrib = %d %x \t frame_len = %d %x\t attrib_len = %d %x\t payload = %s %x\t\n",msg.vrsn_type,&msg, msg.attrib_type, &msg.attrib_type, msg.frame_len, &msg.frame_len, msg.attrib_len, &msg.attrib_len, msg.payload, &msg.payload);
 */                                    
+=======
+                                    
+>>>>>>> 6ea6440... Fine tuning needed
     				}
 				}
+			}
+			
 			}
 			}
 			}
