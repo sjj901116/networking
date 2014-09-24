@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 	}
 	buf[numbytes] = '\0';
 	struct SBCP *recv_msg=(struct SBCP*) &buf;
-	printf("NUMBYTES: %d SAMPLE : %d %d\n",numbytes,ntohs(recv_msg->at[1].attrib_type),ntohs(recv_msg->at[1].attrib_len));
+//	printf("%s %x %x SAMPLE : %d %d\n",recv_msg->at[0].payload,&recv_msg->at[0].payload,&recv_msg->at[1].attrib_type,ntohs(recv_msg->at[1].attrib_type),ntohs(recv_msg->at[1].attrib_len));
 	//FWD msg
 	if(((ntohs(recv_msg->vrsn_type))&0x7F) == 3) { 
 		printf("%s: %s\n",recv_msg->at[0].payload,recv_msg->at[1].payload);

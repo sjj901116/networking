@@ -23,7 +23,7 @@
 
 struct Attr{
 uint16_t attrib_type,attrib_len;
-char payload[MAXDATASIZE];
+char *payload;
 };
 
 struct SBCP{
@@ -175,10 +175,10 @@ int main(int argc, char *argv[])
                     	} 
 			else {
                         // we got some data from a client
-			printf("bbbb\n");
 			buf[numbytes] = '\0';
-			struct SBCP *msg_buff= (struct SBCP *)&buf;
-			if(ntohs(msg_buff->at[0].attrib_type) == 2)
+			uint16_t *vrs_ty = (uint16_t *)&buf;
+			//printf(" %d %x %x %x\n", ntohs(msg_buff->at[0].attrib_type), &msg_buff->at[0].attrib_len, &msg_buff->at[0].payload, &msg_buff->at[1].attrib_type);
+			if(((ntohs(*vrs_ty))&0x7F) == 2)
 			{
 				if(usrns[atoi(argv[3])-1]!=NULL) {
                                 printf("server: MAX CLIENTS of %d reached. Sorry Try again later!\n",atoi(argv[3]));
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
                         	else {
 				present = 0;
                                 for(j=0 ; j < atoi(argv[3]) ;j++) {
-                                        if(usrns[j]!=NULL && strcmp(msg_buff->at[0].payload,usrns[j])==0) {
+                                        if(usrns[j]!=NULL && strncmp(&buf[8],usrns[j],numbytes-8)==0) {
                                                 printf("server: USERNAME(%s) already present!. Try again\n",usrns[j]);
                                                 close(i); // bye!
 		                                FD_CLR(i, &master); // remove from master set
@@ -197,16 +197,16 @@ int main(int argc, char *argv[])
                 		        }
 				}
 				if(!present) {				
-				usrns[i-sockfd-1]=(char*) malloc(strlen(msg_buff->at[0].payload));
-				strcpy(usrns[i-sockfd-1],msg_buff->at[0].payload);
+				usrns[i-sockfd-1]=(char*) malloc(numbytes-8);
+				strncpy(usrns[i-sockfd-1],&buf[8],numbytes-8);
 				printf("server: %s JOINED the chat room\n",usrns[i-sockfd-1]);	
 				}
 				}
 			}	
 			else {
-				printf("%s: %s \n",usrns[i-sockfd-1],msg_buff->at[0].payload);
+				printf("%s: %s \n",usrns[i-sockfd-1],&buf[8]);
 
-                        for(j = 0; j <= sockmax; j++) {
+/*                        for(j = 0; j <= sockmax; j++) {
                             	// send to everyone!
                         	if (FD_ISSET(j, &master)) {
                                 // except the listener and ourselves
@@ -214,14 +214,18 @@ int main(int argc, char *argv[])
 				    struct SBCP msg;
 				    msg.vrsn_type = (3<<7)|(3);
 				    msg.at[0].attrib_type = 2;
+				    msg.at[0].payload = malloc(strlen(usrns[i-sockfd-1]));
 				    strcpy(msg.at[0].payload,usrns[i-sockfd-1]); //username initially to join
 				    msg.at[0].attrib_len = strlen(msg.at[0].payload)+4;
 				    msg.frame_len = msg.at[0].attrib_len + 4;
 
 				    msg.at[1].attrib_type = 4;
+				    msg.at[1].payload = malloc(strlen(msg_buff->at[0].payload));
 				    strcpy(msg.at[1].payload,msg_buff->at[0].payload);	
 				    msg.at[1].attrib_len = strlen(msg.at[1].payload)+4;
 				    msg.frame_len += msg.at[1].attrib_len ;
+				
+				    //memcpy(msg.at[0].payload, (char *)&msg.at[1], msg.at[1].attrib_len);
 
 				    msg.vrsn_type = htons (msg.vrsn_type);
 				    msg.frame_len = htons (msg.frame_len);
@@ -233,14 +237,14 @@ int main(int argc, char *argv[])
 				    
 				    printf("%x %x %x %s \n",&msg.at[0].payload,&msg.at[1].attrib_type,&msg.at[1].attrib_len,msg.at[1].payload);
 				    //Sending Chat text and username (FWD)
-				    if (send(j, (char *)&msg, ntohs(msg.frame_len), 0) == -1){
+				    if (send(j, (char *)&msg, sizeof(msg), 0) == -1){
 				    printf("Error sending\n");
 				    perror("send");
 			    	    }
     				}
 				}
 			}
-			
+*/			
 			}
 			}
 			}
